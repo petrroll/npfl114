@@ -108,6 +108,9 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
+    parser.add_argument("--run_name", default="1", type=str, help="Name of the run, prefixes logfile & predicted test file.")
+    parser.add_argument("--predict_test", default=True, type=bool, help="Predict and save test data.")
+
     parser.add_argument("--batch_size", default=None, type=int, help="Batch size.")
     parser.add_argument("--epochs", default=None, type=int, help="Number of epochs.")
     parser.add_argument("--modelnet_dim", default=20, type=int, help="Dimension of ModelNet data.")
@@ -116,8 +119,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Create logdir name
-    args.logdir = "logs/{}-{}-{}".format(
+    args.logdir = "logs/{}-{}-{}-{}".format(
         os.path.basename(__file__),
+        args.run_name,
         datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
         ",".join(("{}={}".format(re.sub("(.)[^_]*_?", r"\1", key), value) for key, value in sorted(vars(args).items())))
     )
@@ -140,10 +144,11 @@ if __name__ == "__main__":
         network.evaluate("dev", dev.voxels, dev.labels)
 
     # Predict test data
-    with open("3d_recognition_test.txt", "w") as test_file:
-        while not test.epoch_finished():
-            voxels, _ = test.next_batch(args.batch_size)
-            labels = network.predict(voxels)
+    if args.predict_test:
+        with open(f"3d_recognition_test-{args.run_name}.txt", "w") as test_file:
+            while not test.epoch_finished():
+                voxels, _ = test.next_batch(args.batch_size)
+                labels = network.predict(voxels)
 
-            for label in labels:
-                print(label, file=test_file)
+                for label in labels:
+                    print(label, file=test_file)

@@ -118,14 +118,18 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
+    parser.add_argument("--run_name", default="1", type=str, help="Name of the run, prefixes logfile & predicted test file.")
+    parser.add_argument("--predict_test", default=True, type=bool, help="Predict and save test data.")
+
     parser.add_argument("--batch_size", default=None, type=int, help="Batch size.")
     parser.add_argument("--epochs", default=None, type=int, help="Number of epochs.")
     parser.add_argument("--threads", default=1, type=int, help="Maximum number of threads to use.")
     args = parser.parse_args()
 
     # Create logdir name
-    args.logdir = "logs/{}-{}-{}".format(
+    args.logdir = "logs/{}-{}-{}-{}".format(
         os.path.basename(__file__),
+        args.run_name,
         datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
         ",".join(("{}={}".format(re.sub("(.)[^_]*_?", r"\1", key), value)
                   for key, value in sorted(vars(args).items()))).replace("/", "-")
@@ -150,9 +154,10 @@ if __name__ == "__main__":
         network.evaluate("dev", dev.images, dev.labels, dev.masks)
 
     # Predict test data
-    with open("fashion_masks_test.txt", "w") as test_file:
-        while not test.epoch_finished():
-            images, _, _ = test.next_batch(args.batch_size)
-            labels, masks = network.predict(images)
-            for i in range(len(labels)):
-                print(labels[i], *masks[i].astype(np.uint8).flatten(), file=test_file)
+    if args.predict_test:
+        with open("fashion_masks_test.txt", "w") as test_file:
+            while not test.epoch_finished():
+                images, _, _ = test.next_batch(args.batch_size)
+                labels, masks = network.predict(images)
+                for i in range(len(labels)):
+                    print(labels[i], *masks[i].astype(np.uint8).flatten(), file=test_file)
